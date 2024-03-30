@@ -32,20 +32,20 @@ git clone https://github.com/kotify/cloud-print-utils.git
 
 cd cloud-print-utils
 
-make build/weasyprint-layer-python3.8.zip
+make build/weasyprint-layer-python3.12.zip
 
 aws lambda publish-layer-version \
     --region us-west-2 \
     --layer-name weasyprint \
-    --zip-file fileb://build/weasyprint-layer-python3.8.zip \
-    --compatible-runtimes "python3.8" \
+    --zip-file fileb://build/weasyprint-layer-python3.12.zip \
+    --compatible-runtimes "python3.12" \
     --license-info "MIT" \
     --description "fonts and libs required by weasyprint"
 
 aws ssm put-parameter --region us-west-2 \
     --name WeasyprintLambdaLayer \
     --type String \
-    --value <value of LayerVersionArn from above command's output>
+    --value rn:aws:lambda:us-west-2:048972532408:layer:weasyprint:1
 ```
 
 Deploy all the demo stacks:

@@ -86,7 +86,7 @@ class WebappStack(Stack):
             workflow.grant_task_response(fargate_service.task_definition.task_role)
 
         # Add Cognito for authentication
-        cognito_domain_prefix = "bedrock-serverless-prompt-chaining-demo"
+        cognito_domain_prefix = "bedrock-serverless-prompt-chaining-dev"
         user_pool = cognito.UserPool(
             self,
             "StreamlitUserPool",

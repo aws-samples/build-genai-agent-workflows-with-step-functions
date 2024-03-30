@@ -7,7 +7,6 @@ import boto3
 s3_client = boto3.client("s3")
 s3_bucket_name = os.environ.get("PDF_BUCKET")
 
-
 def handler(event, context):
     location = event["location"]
     itinerary_content = f"""
