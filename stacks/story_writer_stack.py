@@ -10,6 +10,7 @@ from constructs import Construct
 
 from .util import (
     get_anthropic_claude_invoke_chain,
+    get_json_response_parser_step,
 )
 
 
@@ -38,20 +39,34 @@ An example of a valid response is below, inside <example></example> XML tags.
         "description": "Description for character 2"
     \}
 ]
-</example>""",
+</example>
+Do not include any other content outside of the JSON object.
+""",
                 sfn.JsonPath.string_at("$$.Execution.Input.story_description"),
             ),
             max_tokens_to_sample=512,
             include_previous_conversation_in_prompt=False,
         )
-        parse_characters_step = sfn.Pass(
-            scope,
+
+        parse_characters_step = get_json_response_parser_step(
+            self,
             "Parse Characters",
-            parameters={
-                "characters": sfn.JsonPath.string_to_json(
-                    sfn.JsonPath.string_at("$.model_outputs.response")
-                ),
+            json_schema={
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                    },
+                    "required": ["name", "description"],
+                    "additionalProperties": False,
+                },
+                "minItems": 5,
+                "maxItems": 5,
+                "uniqueItems": True,
             },
+            output_key="characters",
             result_path="$.parsed_output",
         )
 
@@ -72,7 +87,7 @@ An example of a valid response is below, inside <example></example> XML tags.
             self,
             "MergeCharacterStoriesAgent",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            entry="agents/generic/merge_map_output",
+            entry="functions/generic/merge_map_output",
             memory_size=256,
         )
 
@@ -97,7 +112,7 @@ An example of a valid response is below, inside <example></example> XML tags.
         )
 
         select_story = sfn.Pass(
-            scope,
+            self,
             "Select Story",
             parameters={
                 "story": sfn.JsonPath.string_at("$.model_outputs.response"),
