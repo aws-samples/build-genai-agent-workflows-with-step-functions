@@ -103,10 +103,10 @@ Do not include any other content outside of the JSON object.
             self,
             "Generate the Full Story",
             prompt=sfn.JsonPath.format(
-                "Now write the short story about {}. Respond only with the story content.",
+                "Now write a long story about {}. Respond only with the story content.",
                 sfn.JsonPath.string_at("$$.Execution.Input.story_description"),
             ),
-            max_tokens_to_sample=2048,
+            max_tokens_to_sample=10240,
             include_previous_conversation_in_prompt=True,
             pass_conversation=False,
         )

@@ -10,5 +10,5 @@ and [Amazon Bedrock](https://aws.amazon.com/bedrock/) to build complex, serverle
 generative AI applications with prompt chaining.
 
 The source code for these demos can be found at
-[on GitHub](https://github.com/aws-samples/amazon-bedrock-serverless-prompt-chaining).
+[on GitHub](https://github.com/bnusunny/amazon-bedrock-serverless-prompt-chaining).
 """

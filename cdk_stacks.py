@@ -26,44 +26,44 @@ WebappStack(
     env=env,
     parent_domain="genai.awsguru.dev",
 )
-BlogPostStack(
-    app,
-    "PromptChaining-BlogPostDemo",
-    env=env,
-)
-TripPlannerStack(
-    app,
-    "PromptChaining-TripPlannerDemo",
-    env=env,
-)
+# BlogPostStack(
+#     app,
+#     "PromptChaining-BlogPostDemo",
+#     env=env,
+# )
+# TripPlannerStack(
+#     app,
+#     "PromptChaining-TripPlannerDemo",
+#     env=env,
+# )
 StoryWriterStack(
     app,
     "PromptChaining-StoryWriterDemo",
     env=env,
 )
-MoviePitchStack(
-    app,
-    "PromptChaining-MoviePitchDemo",
-    env=env,
-)
-MealPlannerStack(
-    app,
-    "PromptChaining-MealPlannerDemo",
-    env=env,
-)
-MostPopularRepoBedrockAgentStack(
-    app,
-    "PromptChaining-MostPopularRepoBedrockAgentsDemo",
-    env=env,
-)
-MostPopularRepoLangchainStack(
-    app,
-    "PromptChaining-MostPopularRepoLangchainDemo",
-    env=env,
-)
-AlarmsStack(
-    app,
-    "PromptChaining-Alarms",
-    env=env,
-)
+# MoviePitchStack(
+#     app,
+#     "PromptChaining-MoviePitchDemo",
+#     env=env,
+# )
+# MealPlannerStack(
+#     app,
+#     "PromptChaining-MealPlannerDemo",
+#     env=env,
+# )
+# MostPopularRepoBedrockAgentStack(
+#     app,
+#     "PromptChaining-MostPopularRepoBedrockAgentsDemo",
+#     env=env,
+# )
+# MostPopularRepoLangchainStack(
+#     app,
+#     "PromptChaining-MostPopularRepoLangchainDemo",
+#     env=env,
+# )
+# AlarmsStack(
+#     app,
+#     "PromptChaining-Alarms",
+#     env=env,
+# )
 app.synth()

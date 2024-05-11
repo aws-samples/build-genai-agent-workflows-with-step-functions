@@ -2,12 +2,13 @@
   "app": "python3 cdk_stacks.py",
   "watch": {
     "include": [
-      "**"
+      "/*"
     ],
     "exclude": [
       "*.md",
       "LICENSE",
       "cdk*.json",
+      "cdk.out/",
       "pipeline",
       "docs",
       "requirements*.txt",
