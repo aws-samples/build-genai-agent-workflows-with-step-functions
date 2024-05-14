@@ -249,7 +249,7 @@ def get_meta_llama_invoke_chain(
         model_id=model_id,
         max_tokens_to_sample=max_tokens_to_sample,
         temperature=temperature,
-        flatten_messages=include_previous_conversation_in_prompt,
+        # flatten_messages=include_previous_conversation_in_prompt,
         input_json_path=input_json_path,
         output_json_path=output_json_path,
     )
@@ -326,7 +326,7 @@ def get_meta_llama_json_response_parser_step(
     fix_json = get_meta_llama_invoke_chain(
         scope,
         id + " - Fix JSON",
-        prompt=sfn.JsonPath.format(
+        user_message=sfn.JsonPath.format(
             f"""I attempted to validate your response against my JSON schema, but received the following error inside <error></error> XML tags.
 <error>
 {{}}
