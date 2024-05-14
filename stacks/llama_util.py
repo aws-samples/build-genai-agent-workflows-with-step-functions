@@ -106,7 +106,7 @@ def get_meta_llama_format_prompt_step(
                 "messages": sfn.JsonPath.object_at(f"{input_json_path}.messages"),
             }
         ),
-        result_selector="$.Payload",
+        result_selector=sfn.JsonPath.object_at("$.Payload"),
         result_path=input_json_path+".prompt",
     )
     add_bedrock_retries(format_prompt)
