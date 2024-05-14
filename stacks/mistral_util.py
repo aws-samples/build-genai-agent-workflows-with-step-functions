@@ -73,6 +73,7 @@ def get_format_prompt_step(
     scope: Construct,
     id: builtins.str,
     output_key: builtins.str = "prompt",
+    flatten_messages: typing.Optional[bool] = False,
     input_json_path: typing.Optional[str] = "$.model_inputs",
     output_json_path: typing.Optional[str] = "$.model_outputs",
 ):
@@ -91,7 +92,11 @@ def get_format_prompt_step(
         lambda_function=format_prompt_lambda,
         payload=sfn.TaskInput.from_object(
             {
-                "messages": sfn.JsonPath.object_at(f"{input_json_path}.messages"),
+                "messages": (
+                    sfn.JsonPath.object_at(f"{input_json_path}.messages[*][*]")
+                    if flatten_messages
+                    else sfn.JsonPath.object_at(f"{input_json_path}.messages")
+                ),
             }
         ),
         result_selector={"text": sfn.JsonPath.string_at("$.Payload")},
@@ -224,6 +229,7 @@ def get_invoke_chain(
         scope,
         id,
         output_key="prompt",
+        flatten_messages=include_previous_conversation_in_prompt,
         input_json_path=input_json_path,
         output_json_path=input_json_path,
     )
@@ -234,7 +240,6 @@ def get_invoke_chain(
         model_id=model_id,
         max_tokens_to_sample=max_tokens_to_sample,
         temperature=temperature,
-        # flatten_messages=include_previous_conversation_in_prompt,
         input_json_path=input_json_path,
         output_json_path=output_json_path,
     )
