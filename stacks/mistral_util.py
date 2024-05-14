@@ -101,7 +101,7 @@ def get_format_prompt_step(
     return format_prompt
 
 
-def get_meta_llama_invoke_model_step(
+def get_invoke_model_step(
     scope: Construct,
     id: builtins.str,
     model_id: bedrock.FoundationModelIdentifier = bedrock.FoundationModelIdentifier.MISTRAL_MIXTRAL_8_X7_B_INSTRUCT_V0_1,
@@ -127,7 +127,7 @@ def get_meta_llama_invoke_model_step(
         ),
         result_selector={
             "role": "assistant",
-            "content": sfn.JsonPath.string_at("$.Body.outputs"),
+            "content": sfn.JsonPath.string_at("$.Body.outputs[0].text"),
         },
         result_path=output_json_path,
     )
@@ -145,7 +145,7 @@ def get_extract_response_step(
     input_json_path: typing.Optional[str] = "$.model_inputs",
     output_json_path: typing.Optional[str] = "$.model_outputs",
 ):
-    response_value = sfn.JsonPath.string_at(f"{output_json_path}.content[0].text")
+    response_value = sfn.JsonPath.string_at(f"{output_json_path}.content")
     if initial_assistant_text:
         response_value = sfn.JsonPath.format(
             "{}{}", initial_assistant_text, response_value
@@ -228,7 +228,7 @@ def get_invoke_chain(
         output_json_path=input_json_path,
     )
 
-    invoke_model = get_meta_llama_invoke_model_step(
+    invoke_model = get_invoke_model_step(
         scope,
         id,
         model_id=model_id,
