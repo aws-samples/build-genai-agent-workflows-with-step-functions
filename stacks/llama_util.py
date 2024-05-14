@@ -60,7 +60,7 @@ def get_meta_llama_prepare_messages_step(
 
     format_prompt = sfn.Pass(
         scope,
-        id + " (Prepare Prompt)",
+        id + " (Prepare Messages)",
         parameters={
             "messages": messages,
         },
@@ -99,17 +99,15 @@ def get_meta_llama_format_prompt_step(
 
     format_prompt = tasks.LambdaInvoke(
         scope,
-        id,
+        id + " (Formate Prompt)",
         lambda_function=format_prompt_lambda,
         payload=sfn.TaskInput.from_object(
             {
                 "messages": sfn.JsonPath.object_at(f"{input_json_path}.messages"),
             }
         ),
-        result_selector={
-            output_key: sfn.JsonPath.object_at("$.Payload"),
-        },
-        result_path=input_json_path,
+        result_selector="$.Payload",
+        result_path=input_json_path+".prompt",
     )
     add_bedrock_retries(format_prompt)
     return format_prompt
