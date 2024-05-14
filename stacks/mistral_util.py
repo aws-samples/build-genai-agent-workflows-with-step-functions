@@ -13,18 +13,6 @@ import typing
 import json
 
 
-def get_bedrock_iam_policy_statement():
-    return iam.PolicyStatement(
-        effect=iam.Effect.ALLOW,
-        actions=[
-            "bedrock:InvokeModel",
-        ],
-        resources=[
-            "arn:aws:bedrock:*::foundation-model/*",
-        ],
-    )
-
-
 def add_bedrock_retries(task):
     task.add_retry(
         errors=["ThrottlingException"],
