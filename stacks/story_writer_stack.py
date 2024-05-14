@@ -8,9 +8,9 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-from .llama_util import (
-    get_meta_llama_invoke_chain,
-    get_meta_llama_json_response_parser_step,
+from .mistral_util import (
+    get_invoke_chain,
+    get_json_response_parser_step,
 )
 
 
@@ -19,7 +19,7 @@ class StoryWriterStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # Agent #1: create characters
-        characters_job = get_meta_llama_invoke_chain(
+        characters_job = get_invoke_chain(
             self,
             "Generate Characters",
             user_message=sfn.JsonPath.format(
@@ -48,7 +48,7 @@ Do not include any other content outside of the JSON object.
             include_previous_conversation_in_prompt=False,
         )
 
-        parse_characters_step = get_meta_llama_json_response_parser_step(
+        parse_characters_step = get_json_response_parser_step(
             self,
             "Parse Characters",
             json_schema={
@@ -71,7 +71,7 @@ Do not include any other content outside of the JSON object.
         )
 
         # Agent #2: create character story arc
-        character_story_job = get_meta_llama_invoke_chain(
+        character_story_job = get_invoke_chain(
             self,
             "Generate Character Story Arc",
             user_message=sfn.JsonPath.format(
@@ -99,7 +99,7 @@ Do not include any other content outside of the JSON object.
         )
 
         # Agent #3: write the story
-        story_job = get_meta_llama_invoke_chain(
+        story_job = get_invoke_chain(
             self,
             "Generate the Full Story",
             user_message=sfn.JsonPath.format(
