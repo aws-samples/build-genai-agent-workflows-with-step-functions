@@ -126,7 +126,7 @@ def get_meta_llama_invoke_model_step(
             }
         ),
         result_selector={
-            "role": sfn.JsonPath.string_at("$.Body.role"),
+            "role": "assistant",
             "content": sfn.JsonPath.string_at("$.Body.outputs"),
         },
         result_path=output_json_path,
