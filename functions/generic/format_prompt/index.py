@@ -45,4 +45,4 @@ def apply_prompt_template(messages):
 def handler(event, context):
     logger.info(event)
 
-    return apply_prompt_template(event.messages)
+    return apply_prompt_template(event["messages"])
