@@ -8,7 +8,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-from llama_util import (
+from .llama_util import (
     get_meta_llama_invoke_chain,
     get_meta_llama_json_response_parser_step,
 )
@@ -22,7 +22,7 @@ class StoryWriterStack(Stack):
         characters_job = get_meta_llama_invoke_chain(
             self,
             "Generate Characters",
-            prompt=sfn.JsonPath.format(
+            user_message=sfn.JsonPath.format(
                 """You are an award-winning fiction writer and you are writing a new story about {}.
 Before writing the story, describe five characters that will be in the story.
 
@@ -74,7 +74,7 @@ Do not include any other content outside of the JSON object.
         character_story_job = get_meta_llama_invoke_chain(
             self,
             "Generate Character Story Arc",
-            prompt=sfn.JsonPath.format(
+            user_message=sfn.JsonPath.format(
                 "Now describe what will happen in the story to {}, who you previously described as: {}.",
                 sfn.JsonPath.string_at("$.character.name"),
                 sfn.JsonPath.string_at("$.character.description"),
@@ -102,7 +102,7 @@ Do not include any other content outside of the JSON object.
         story_job = get_meta_llama_invoke_chain(
             self,
             "Generate the Full Story",
-            prompt=sfn.JsonPath.format(
+            user_message=sfn.JsonPath.format(
                 "Now write a long story about {}. Respond only with the story content.",
                 sfn.JsonPath.string_at("$$.Execution.Input.story_description"),
             ),
