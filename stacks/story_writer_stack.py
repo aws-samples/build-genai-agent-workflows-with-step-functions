@@ -86,7 +86,7 @@ Do not include any other content outside of the JSON object.
         merge_character_stories_lambda = lambda_python.PythonFunction(
             self,
             "MergeCharacterStoriesAgent",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             entry="functions/generic/merge_map_output",
             memory_size=256,
         )
@@ -106,7 +106,7 @@ Do not include any other content outside of the JSON object.
                 "Now write a long story about {}. Respond only with the story content.",
                 sfn.JsonPath.string_at("$$.Execution.Input.story_description"),
             ),
-            max_tokens_to_sample=10240,
+            max_tokens_to_sample=4096,
             include_previous_conversation_in_prompt=True,
             pass_conversation=False,
         )
