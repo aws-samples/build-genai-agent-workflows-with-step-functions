@@ -10,7 +10,6 @@ from aws_cdk import (
 from constructs import Construct
 import builtins
 import typing
-import jinja2
 import json
 
 
@@ -35,10 +34,10 @@ def add_bedrock_retries(task):
     )
 
 
-def get_meta_llama_prepare_prompt_step(
+def get_meta_llama_prepare_messages_step(
     scope: Construct,
     id: builtins.str,
-    prompt: builtins.str,
+    user_message: builtins.str,
     include_previous_conversation_in_prompt: bool,
     initial_assistant_text: typing.Optional[str] = "",
     input_json_path: typing.Optional[str] = "$.model_inputs",
@@ -47,7 +46,7 @@ def get_meta_llama_prepare_prompt_step(
     messages = [
         {
             "role": "user",
-            "content": prompt,
+            "content": user_message,
         }
     ]
 
@@ -82,46 +81,38 @@ def get_meta_llama_prepare_prompt_step(
         format_prompt = format_prompt.next(insert_conversation)
     return format_prompt
 
-def apply_meta_llama_prompt_template(
-    messages
+def get_meta_llama_format_prompt_step(
+    scope: Construct,
+    id: builtins.str,
+    output_key: builtins.str,
+    input_json_path: typing.Optional[str] = "$.model_inputs",
+    output_json_path: typing.Optional[str] = "$.model_outputs",
 ):
-    # Define the Jinja2 template
-    prompt_template = """\
-{% if messages[0]['role'] == 'system' %}
-    {% set loop_messages = messages[1:] %}
-    {% set system_message = '<<SYS>>\n' + messages[0]['content'].strip() + '\n<</SYS>>\n\n' %}
-{% else %}
-    {% set loop_messages = messages %}
-    {% set system_message = '' %}
-{% endif %}
-
-{% for message in loop_messages %}
-    {% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}
-        {{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}
-    {% endif %}
-    
-    {% if loop.index0 == 0 %}
-        {% set content = system_message + message['content'] %}
-    {% else %}
-        {% set content = message['content'] %}
-    {% endif %}
-    
-    {% if message['role'] == 'user' %}
-        {{ bos_token + '[INST] ' + content.strip() + ' [/INST]' }}
-    {% elif message['role'] == 'assistant' %}
-        {{ ' '  + content.strip() + ' ' + eos_token }}
-    {% endif %}
-{% endfor %}
-"""
-
-    template = jinja2.Template(prompt_template)
-    rendered_prompt = template.render(
-        bos_token='<s>',
-        eos_token='</s>',
-        messages=messages
+ 
+    format_prompt_lambda = lambda_python.PythonFunction(
+        scope,
+        "".join(id.split()) + "Function",
+        runtime=lambda_.Runtime.PYTHON_3_12,
+        entry="functions/generic/format_prompt",
+        memory_size=256,
     )
 
-    return rendered_prompt
+    format_prompt = tasks.LambdaInvoke(
+        scope,
+        id,
+        lambda_function=format_prompt_lambda,
+        payload=sfn.TaskInput.from_object(
+            {
+                "messages": sfn.JsonPath.object_at(f"{input_json_path}.messages"),
+            }
+        ),
+        result_selector={
+            output_key: sfn.JsonPath.object_at("$.Payload"),
+        },
+        result_path=input_json_path,
+    )
+    add_bedrock_retries(format_prompt)
+    return format_prompt
 
 def get_meta_llama_invoke_model_step(
     scope: Construct,
@@ -129,16 +120,10 @@ def get_meta_llama_invoke_model_step(
     model_id: bedrock.FoundationModelIdentifier = bedrock.FoundationModelIdentifier.META_LLAMA_2_CHAT_70_B_V1,
     max_tokens_to_sample: typing.Optional[int] = 250,
     temperature: typing.Optional[float] = 1,
-    flatten_messages: typing.Optional[bool] = False,
+    top_p: typing.Optional[float] = 0.9,
     input_json_path: typing.Optional[str] = "$.model_inputs",
     output_json_path: typing.Optional[str] = "$.model_outputs",
 ):
-    messages = sfn.JsonPath.object_at(f"{input_json_path}.messages")
-    # flatten_messages = sfn.JsonPath.object_at(f"{input_json_path}.messages[*][*]")
-
-    prompt = apply_meta_llama_prompt_template(messages)
-
-
     invoke_model = tasks.BedrockInvokeModel(
         scope,
         id + " (Invoke Model)",
@@ -149,10 +134,10 @@ def get_meta_llama_invoke_model_step(
         ),
         body=sfn.TaskInput.from_object(
             {
-                "prompt": prompt,
+                "prompt": sfn.JsonPath.object_at(f"{input_json_path}.prompt"),
                 "temperature": temperature,
                 "max_gen_len": max_tokens_to_sample,
-                "top_p": 0.9,
+                "top_p": top_p,
             }
         ),
         result_selector={
@@ -168,7 +153,7 @@ def get_meta_llama_invoke_model_step(
 def get_meta_llama_extract_response_step(
     scope: Construct,
     id: builtins.str,
-    prompt: builtins.str,
+    user_message: builtins.str,
     initial_assistant_text: typing.Optional[str] = "",
     flatten_messages: typing.Optional[bool] = False,
     pass_conversation: typing.Optional[bool] = True,
@@ -182,7 +167,7 @@ def get_meta_llama_extract_response_step(
         )
 
     extract_response_parameters = {
-        "prompt": prompt,
+        "prompt": user_message,
         "response": response_value,
         "conversation": sfn.JsonPath.array(
             (
@@ -224,7 +209,7 @@ def get_meta_llama_extract_response_step(
 def get_meta_llama_invoke_chain(
     scope: Construct,
     id: builtins.str,
-    prompt: builtins.str,
+    user_message: builtins.str,
     model_id: bedrock.FoundationModelIdentifier = bedrock.FoundationModelIdentifier.META_LLAMA_2_CHAT_70_B_V1,
     initial_assistant_text: typing.Optional[str] = "",
     include_initial_assistant_text_in_response: typing.Optional[bool] = True,
@@ -240,12 +225,20 @@ def get_meta_llama_invoke_chain(
             'initial_assistant_text cannot be used with pass_conversation. This combination results in a runtime error from Bedrock: `messages: roles must alternate between "user" and "assistant", but found multiple "assistant" roles in a row`'
         )
 
-    format_prompt = get_meta_llama_prepare_prompt_step(
+    prepare_messages = get_meta_llama_prepare_messages_step(
         scope,
         id,
-        prompt,
+        user_message,
         include_previous_conversation_in_prompt=include_previous_conversation_in_prompt,
         initial_assistant_text=initial_assistant_text,
+        input_json_path=input_json_path,
+        output_json_path=output_json_path,
+    )
+
+    format_prompt = get_meta_llama_format_prompt_step(
+        scope,
+        id,
+        output_key="prompt",
         input_json_path=input_json_path,
         output_json_path=output_json_path,
     )
@@ -264,7 +257,7 @@ def get_meta_llama_invoke_chain(
     extract_response = get_meta_llama_extract_response_step(
         scope,
         id,
-        prompt,
+        user_message,
         initial_assistant_text=(
             initial_assistant_text if include_initial_assistant_text_in_response else ""
         ),
@@ -272,10 +265,10 @@ def get_meta_llama_invoke_chain(
         pass_conversation=pass_conversation,
         input_json_path=input_json_path,
         output_json_path=output_json_path,
+
     )
 
-    return format_prompt.next(invoke_model).next(extract_response)
-
+    return prepare_messages.next(format_prompt).next(invoke_model).next(extract_response)
 
 
 def get_meta_llama_json_response_parser_step(
@@ -295,7 +288,7 @@ def get_meta_llama_json_response_parser_step(
     parser_lambda = lambda_python.PythonFunction(
         scope,
         "".join(id.split()) + "Function",
-        runtime=lambda_.Runtime.PYTHON_3_9,
+        runtime=lambda_.Runtime.PYTHON_3_12,
         entry="functions/generic/parse_json_response",
         memory_size=256,
     )
