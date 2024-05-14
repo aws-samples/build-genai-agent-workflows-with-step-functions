@@ -81,14 +81,15 @@ def get_meta_llama_prepare_messages_step(
         format_prompt = format_prompt.next(insert_conversation)
     return format_prompt
 
+
 def get_meta_llama_format_prompt_step(
     scope: Construct,
     id: builtins.str,
-    output_key: builtins.str,
+    output_key: builtins.str = "prompt",
     input_json_path: typing.Optional[str] = "$.model_inputs",
     output_json_path: typing.Optional[str] = "$.model_outputs",
 ):
- 
+
     format_prompt_lambda = lambda_python.PythonFunction(
         scope,
         "".join(id.split()) + "Function",
@@ -106,11 +107,12 @@ def get_meta_llama_format_prompt_step(
                 "messages": sfn.JsonPath.object_at(f"{input_json_path}.messages"),
             }
         ),
-        result_selector=sfn.JsonPath.object_at("$.Payload"),
-        result_path=input_json_path+".prompt",
+        result_selector={"text": sfn.JsonPath.string_at("$.Payload")},
+        result_path=output_json_path + "." + output_key,
     )
     add_bedrock_retries(format_prompt)
     return format_prompt
+
 
 def get_meta_llama_invoke_model_step(
     scope: Construct,
@@ -132,15 +134,14 @@ def get_meta_llama_invoke_model_step(
         ),
         body=sfn.TaskInput.from_object(
             {
-                "prompt": sfn.JsonPath.object_at(f"{input_json_path}.prompt"),
+                "prompt": sfn.JsonPath.object_at(f"{input_json_path}.prompt.text"),
                 "temperature": temperature,
                 "max_gen_len": max_tokens_to_sample,
                 "top_p": top_p,
             }
         ),
         result_selector={
-            "role": sfn.JsonPath.string_at("$.Body.role"),
-            "content": sfn.JsonPath.string_at("$.Body.content"),
+            "content": sfn.JsonPath.string_at("$.Body.generation"),
         },
         result_path=output_json_path,
     )
@@ -238,7 +239,7 @@ def get_meta_llama_invoke_chain(
         id,
         output_key="prompt",
         input_json_path=input_json_path,
-        output_json_path=output_json_path,
+        output_json_path=input_json_path,
     )
 
     invoke_model = get_meta_llama_invoke_model_step(
@@ -263,10 +264,11 @@ def get_meta_llama_invoke_chain(
         pass_conversation=pass_conversation,
         input_json_path=input_json_path,
         output_json_path=output_json_path,
-
     )
 
-    return prepare_messages.next(format_prompt).next(invoke_model).next(extract_response)
+    return (
+        prepare_messages.next(format_prompt).next(invoke_model).next(extract_response)
+    )
 
 
 def get_meta_llama_json_response_parser_step(

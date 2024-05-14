@@ -39,7 +39,7 @@ def apply_prompt_template(messages):
         bos_token="<s>", eos_token="</s>", messages=messages
     )
 
-    return rendered_prompt
+    return rendered_prompt.strip()
 
 
 def handler(event, context):
