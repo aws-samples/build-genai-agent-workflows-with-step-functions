@@ -2,6 +2,8 @@
 
 This repository provides code for Build Genai Agent Workflowsw with Step Functions workshop. This workshop uses Step Funtions and Bedrock to implement complex tasks with prompt chaining.
 
+This workshop is based on [Amazon Bedrock Serverless Prompt Chaining](https://github.com/aws-samples/amazon-bedrock-serverless-prompt-chaining).
+
 ## Write a story
 
 This example generates a short story about a given topic.
